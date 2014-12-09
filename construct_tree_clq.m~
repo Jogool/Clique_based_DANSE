@@ -109,14 +109,8 @@ for ii = 1:nb_nodes
         node(ii).clq_conn = node(ii).tree_conn;
     end
 end
-% problem is here
-idx = find([node.isclq]);
-for ii = 1:numel(idx) 
-    if eq(numel(node(idx(ii)).clq_conn),numel(node(idx(ii)).clq_nbrs))
-        A_mst(idx(ii),:) = 0;
-        A_mst(:,idx(ii)) = 0;
-    end
-end
+
+eq(numel(node(jj).clq_conn),numel(node(jj).clq_nbrs)))
 
 
 [u1,v1]=eig(A_mst);

@@ -61,38 +61,57 @@ else
 end
 
 % remove redudant updating from clique path
-updateorder_clq = [];
-[node(updateorder).clq];
-updateorder
-idxs = [node(updateorder).clq]
+% this removes all clique only nodes, only let them update once
+% something is wrong with removing only clique connections 
+updateorder_clq = updateorder;
+idx = find([node.isclq]);
+idx = setdiff(idx',updateorder_clq');
+for ii = 1:numel(idx)
+    if eq(numel(node(idx(ii)).clq_conn),numel(node(idx(ii)).clq_nbrs))
+        [~,~,ib] = intersect(node(idx(ii)).clq_nbrs,updateorder_clq);
+        ib = sort(ib);
+        ib = ib(1);
+        updateorder_clq = [updateorder_clq(1:ib) idx(ii) updateorder_clq(ib+1:end)];
+        %if eq(ib(1)+1,ib(2))
+        %    updateorder_clq = [] ;
+        %else
+            
+        %end
+    end
+end
+
+[node(updateorder_clq).clq];
+updateorder_clq
+%idxs = [node(updateorder_clq).clq];
 idx = 1;
 counter = 0;
 idx_start = 0;
-while lt(idx,numel(updateorder))
+uo_temp = [];
+while lt(idx,numel(updateorder_clq))
     if eq(idxs(idx_start+1),idxs(idx));
         counter = counter + 1;
     else
         if gt(counter,DANSE_param.clq_size)
-            temp_idx_start = updateorder(idx_start+1);
-            temp_idx_end = updateorder(idx-1);
+            temp_idx_start = updateorder_clq(idx_start+1);
+            temp_idx_end = updateorder_clq(idx-1);
             clq_idx = node(temp_idx_start).clq_nbrs;
             clq_idx(find(clq_idx == temp_idx_end)) = [];
             updateorder_temp = [temp_idx_start  clq_idx temp_idx_end];
-            updateorder_clq = [updateorder_clq updateorder_temp];
+            uo_temp = [uo_temp updateorder_temp];
             
         else
             if ~idx_start
                 idx_start = 1;
             end
-            updateorder_clq = [updateorder_clq updateorder(idx_start:idx-1)];
+            uo_temp = [uo_temp updateorder_clq(idx_start:idx-1)];
         end
         counter = 0;
         idx_start = idx;
     end
     idx = idx + 1;
 end
-updateorder
 updateorder_clq
+uo_temp
 
 % find centralized solution
 disp('Centralized')

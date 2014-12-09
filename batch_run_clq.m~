@@ -59,46 +59,57 @@ else
     [node,~,~,~] = network_gen_clq(DANSE_param);
     [node,~,updateorder] = construct_tree_clq(node);
 end
+
 % remove redudant updating from clique path
-updateorder_clq = [];
-[node(updateorder).clq];
-idxs = [node(updateorder).clq]
+% this removes all clique only nodes, only let them update once
+updateorder_clq = updateorder;
+idx = find([node.isclq]);
+idx = setdiff(idx',updateorder');
+for ii = 1:numel(idx)
+    if eq(numel(node(idx(ii)).clq_conn),numel(node(idx(ii)).clq_nbrs))
+        [~,~,ib] = intersect(node(idx(ii)).clq_nbrs,updateorder_clq);
+        ib = sort(ib);
+        updateorder = [upd
+        %if eq(ib(1)+1,ib(2))
+        %    updateorder_clq = [] ;
+        %else
+            
+        %end
+    end
+end
+
+[node(updateorder_clq).clq];
+updateorder_clq
+idxs = [node(updateorder_clq).clq]
 idx = 1;
 counter = 0;
-idx_start = 1;
-while lt(idx,numel(updateorder))
+idx_start = 0;
+uo_temp = [];
+while lt(idx,numel(updateorder_clq))
     if eq(idxs(idx_start+1),idxs(idx));
         counter = counter + 1;
     else
         if gt(counter,DANSE_param.clq_size)
-            temp_idx_start = updateorder(idx_start);
-            temp_idx_end = updateorder(idx-1);
-            clq_idx = node(temp_idx).clq_nbrs;
-            
-            updateorder_clq
+            temp_idx_start = updateorder_clq(idx_start+1);
+            temp_idx_end = updateorder_clq(idx-1);
+            clq_idx = node(temp_idx_start).clq_nbrs;
+            clq_idx(find(clq_idx == temp_idx_end)) = [];
+            updateorder_temp = [temp_idx_start  clq_idx temp_idx_end];
+            uo_temp = [uo_temp updateorder_temp];
             
         else
-            updateorder_clq = [updateorder_clq updateorder(idx_start:idx)];
+            if ~idx_start
+                idx_start = 1;
+            end
+            uo_temp = [uo_temp updateorder_clq(idx_start:idx-1)];
         end
-
         counter = 0;
         idx_start = idx;
     end
     idx = idx + 1;
 end
-
-%idx = find([node.isclq]);
-%for ii = idx
-    %if eq(numel(node(ii).clq_conn),numel(node(ii).clq_nbrs))
-    %    updateorder_clq(find(updateorder_clq == ii)) = [];
-        %idx1 = find(~diff(updateorder_clq));
-        %for jj = idx1
-        %    updateorder_clq(jj+1) = ii;
-        %end
-        
-    %end
-%end
-
+updateorder_clq
+uo_temp
 
 % find centralized solution
 disp('Centralized')
