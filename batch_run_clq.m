@@ -21,7 +21,7 @@ function [total_conv] = batch_run_clq()
 DANSE_param.desired_sources = 2;  
 
 % number of nodes
-DANSE_param.nb_nodes = 11;       
+DANSE_param.nb_nodes = 15;       
 
 % number of sensors per node (assumed same across all nodes compression 
 %ratio of (DANSE_param.sensors+1)/DANSE_param.desired_sources)
@@ -32,8 +32,10 @@ DANSE_param.noise_sources = 4;
 
 % number and size of cliques 
 DANSE_param.nb_clq = 3;     % number of cliques
-DANSE_param.clq_size = 3;   % number of nodes in clique
-
+DANSE_param.clq_size = 4;   % number of nodes in clique
+if lt(DANSE_param.nb_nodes,DANSE_param.nb_clq*DANSE_param.clq_size)
+    disp(['Warning not enough nodes for clique generation']);
+end
 
 plot_on = 1;        % 1(0) - show (do not show) network
 
@@ -57,20 +59,40 @@ else
     [node,~,~,~] = network_gen_clq(DANSE_param);
     [node,~,updateorder] = construct_tree_clq(node);
 end
-% remove redudant updating from clique path
-updateorder_clq = updateorder;
-idx = find([node.isclq]);
-for ii = idx
-    if eq(numel(node(ii).clq_conn),numel(node(ii).clq_nbrs))
-        updateorder_clq(find(updateorder_clq == ii)) = [];
-        idx1 = find(~diff(updateorder_clq));
-%         for jj = idx1
-%             updateorder_clq(jj+1) = ii;
-%         end
-        
-    end
-end
 
+% remove redudant updating from clique path
+updateorder_clq = [];
+[node(updateorder).clq];
+updateorder
+idxs = [node(updateorder).clq]
+idx = 1;
+counter = 0;
+idx_start = 0;
+while lt(idx,numel(updateorder))
+    if eq(idxs(idx_start+1),idxs(idx));
+        counter = counter + 1;
+    else
+        if gt(counter,DANSE_param.clq_size)
+            temp_idx_start = updateorder(idx_start+1);
+            temp_idx_end = updateorder(idx-1);
+            clq_idx = node(temp_idx_start).clq_nbrs;
+            clq_idx(find(clq_idx == temp_idx_end)) = [];
+            updateorder_temp = [temp_idx_start  clq_idx temp_idx_end];
+            updateorder_clq = [updateorder_clq updateorder_temp];
+            
+        else
+            if ~idx_start
+                idx_start = 1;
+            end
+            updateorder_clq = [updateorder_clq updateorder(idx_start:idx-1)];
+        end
+        counter = 0;
+        idx_start = idx;
+    end
+    idx = idx + 1;
+end
+updateorder
+updateorder_clq
 
 % find centralized solution
 disp('Centralized')
