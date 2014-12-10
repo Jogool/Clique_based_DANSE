@@ -110,13 +110,14 @@ for ii = 1:nb_nodes
     end
 end
 % problem is here
-idx = find([node.isclq]);
-for ii = 1:numel(idx) 
-    if eq(numel(node(idx(ii)).clq_conn),numel(node(idx(ii)).clq_nbrs))
-        A_mst(idx(ii),:) = 0;
-        A_mst(:,idx(ii)) = 0;
-    end
-end
+% A_mst_org = A_mst;
+% idx = find([node.isclq]);
+% for ii = 1:numel(idx) 
+%     if isempty(setdiff(node(idx(ii)).clq_conn,node(idx(ii)).clq_nbrs))
+%         A_mst(idx(ii),:) = 0;
+%         A_mst(:,idx(ii)) = 0;
+%     end
+% end
 
 
 [u1,v1]=eig(A_mst);
