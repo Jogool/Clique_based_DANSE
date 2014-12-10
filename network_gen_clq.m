@@ -80,7 +80,7 @@ for ii = 1:DANSE_param.nb_nodes
     else
         node(ii).pos = env_size*rand(2,1); % non-clique node position (assuming 5x5 room)
         node(ii).isclq = 0;
-        node(ii).clq = [];
+        node(ii).clq = 0;
     end
     for jj = 1:node(ii).sensors
         node(ii).sensor(jj).pos(1) = node(ii).pos(1)+r_sen*cos(circ_pos(jj));   % x-axis sensor position on node

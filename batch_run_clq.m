@@ -21,7 +21,7 @@ function [total_conv] = batch_run_clq()
 DANSE_param.desired_sources = 2;  
 
 % number of nodes
-DANSE_param.nb_nodes = 11;       
+DANSE_param.nb_nodes = 13;       
 
 % number of sensors per node (assumed same across all nodes compression 
 %ratio of (DANSE_param.sensors+1)/DANSE_param.desired_sources)
@@ -32,8 +32,10 @@ DANSE_param.noise_sources = 4;
 
 % number and size of cliques 
 DANSE_param.nb_clq = 3;     % number of cliques
-DANSE_param.clq_size = 3;   % number of nodes in clique
-
+DANSE_param.clq_size = 4;   % number of nodes in clique
+if lt(DANSE_param.nb_nodes,DANSE_param.nb_clq*DANSE_param.clq_size)
+    disp(['Warning not enough nodes for clique generation']);
+end
 
 plot_on = 1;        % 1(0) - show (do not show) network
 
@@ -57,20 +59,37 @@ else
     [node,~,~,~] = network_gen_clq(DANSE_param);
     [node,~,updateorder] = construct_tree_clq(node);
 end
-% remove redudant updating from clique path
+
+% remove redudant updating from clique path : removes all clique only 
+% nodes (only let them update once)
+
 updateorder_clq = updateorder;
 idx = find([node.isclq]);
-for ii = idx
-    if eq(numel(node(ii).clq_conn),numel(node(ii).clq_nbrs))
-        updateorder_clq(find(updateorder_clq == ii)) = [];
-        idx1 = find(~diff(updateorder_clq));
-%         for jj = idx1
-%             updateorder_clq(jj+1) = ii;
-%         end
-        
+for ii = 1:numel(idx) 
+    if isempty(setdiff(node(idx(ii)).clq_conn,node(idx(ii)).clq_nbrs))
+        [~,I] = find(updateorder_clq == idx(ii));
+        updateorder_clq(I(2:end)) = [];
+    else
+        [~,I] = find(updateorder_clq == idx(ii));
+        idx_rem = [];
+        for jj = 1:numel(I)
+            % chech to make sure that node is not at the end or the
+            % beginning of the update path
+            if and(~eq(I(jj),1),lt(I,numel(updateorder_clq)))
+                start_node = updateorder_clq(I(jj)-1);
+                end_node = updateorder_clq(I(jj)+1);
+                [~,~,ib] = intersect(node(idx(ii)).clq_nbrs,[start_node end_node]);
+                if eq(numel(ib),2)
+                    idx_rem = [idx_rem I(jj)];
+                end
+            end
+        end
+        updateorder_clq(idx_rem) = [];
     end
 end
 
+updateorder
+updateorder_clq
 
 % find centralized solution
 disp('Centralized')
@@ -80,9 +99,9 @@ disp('Centralized')
 % DANSE algorithm, so that the local filters all start at the same value
 org_node = node;
 
-% DANSE
+%% DANSE - round robin updating
 fprintf('\n')
-disp('DANSE')
+disp('DANSE round robin updating')
 reverseStr = '';
 
 node_update = 1;
@@ -104,6 +123,34 @@ while 1
     fprintf([reverseStr, msg]);
     reverseStr = repmat(sprintf('\b'), 1, length(msg));
 end
+
+%% DANSE - tree updating
+node = org_node;
+fprintf('\n')
+disp('DANSE tree updating')
+reverseStr = '';
+
+node_update = 1;
+cost_sum_DANSE_tree_updating = [];
+ii = 1;
+while 1
+    [node] = DANSE(node,node_update);
+    cost_sum_DANSE_tree_updating = [cost_sum_DANSE_tree_updating ...
+        sum(cat(1,node.cost))];
+    tot_diff = norm(cat(1,node.cost_cent) - ...
+        cellfun(@(x) x(end), {node.cost})');
+    
+    if or(lt(tot_diff,thresh),ge(ii,max_iter));
+        break
+    else
+        ii = ii + 1;  
+    end
+    node_update=updateorder(rem(ii,numel(updateorder))+1);
+    msg = sprintf('Iteration : %d', ii);
+    fprintf([reverseStr, msg]);
+    reverseStr = repmat(sprintf('\b'), 1, length(msg));
+end
+
 
 node = org_node;
 % T-DANSE
@@ -140,9 +187,9 @@ if plot_on
     figure
     hold on
     loglog(cost_sum_DANSE)
-    loglog(cost_sum_TDANSE,'-xm')
-    loglog(cost_sum_TIDANSE_fc,'-or')
-    loglog(cost_sum_TIDANSE_tree,'--dk')
+    loglog(cost_sum_DANSE_tree_updating,'-xm')
+    loglog(cost_sum_TDANSE,'-or')
+    %loglog(cost_sum_TIDANSE_tree,'--dk')
     axis tight
 
 h =  refline(0,sum([node.cost_cent]));
@@ -150,7 +197,7 @@ set(h,'LineStyle','--');
 
 a = get(gca,'YLim');
 set(gca,'YLim',[sum([node.cost_cent]) - sum([node.cost_cent])*.1 a(2)])
-legend('DANSE', 'T-DANSE', 'TI-DANSE (FC)','TI-DANSE (T)', 'Optimal');
+legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','TI-DANSE (T)', 'Optimal');
 set(gca, 'XScale', 'log', 'YScale', 'log')
 xlabel('Iteration')
 ylabel('Sum of LS cost for all nodes (dB)')

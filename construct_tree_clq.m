@@ -63,9 +63,26 @@ for ii = 1:nb_nodes
     node(ii).conn = find(A(ii,:));
 end
 
+% truncate connections such that non-clique nodes only communicate with the
+% nearest clique node neighbor
+A_clq = A;
+for ii = 1:max([node.clq])
+    idx = find([node.clq] == ii); % nodes in clique
+    idx1 = 1:nb_nodes;
+    idx1(idx) = [];                         % nodes not in clique
+    idx2 = find(sum(A_clq(idx,idx1)) > 1);
+    if ~isempty(idx2)
+        for jj = 1:numel(idx2)
+            [~,I] = min(D(idx,idx1(idx2(jj))));
+            A_clq(idx(idx~=idx(I)),idx1(idx2(jj))) = 0;
+            A_clq(idx1(idx2(jj)),idx(idx~=idx(I))) = 0;            
+        end
+    end
+end
+
 % find miminum spanning tree based on current connected adjanceny matrix
 % Euclidean weights
-A_tril = tril(A);
+A_tril = tril(A_clq);
 euc_weight = D(find(A_tril));
 [rows,cols] = find(A_tril);
 
@@ -76,25 +93,31 @@ UG = sparse(rows,cols,euc_weight,nb_nodes,nb_nodes);
 A_mst = full(ST)+full(ST)';    % adjanceny matrix of tree topology
 A_mst(find(A_mst)) = 1;
 
-%find all connections for tree
+% find all connections for tree
 for ii = 1:nb_nodes
     node(ii).tree_conn = find(A_mst(:,ii));
 end
-A_clq = A_mst;
-%find all connections for clique
+
+% add clique connections to tree connections for clique nodes
 for ii = 1:nb_nodes
     if node(ii).isclq
         idx = find([node.clq] == node(ii).clq);
         clq_nbrs = idx(find(idx ~= ii));
         node(ii).clq_nbrs = clq_nbrs;
         node(ii).clq_conn = unique([clq_nbrs node(ii).tree_conn'])';
-        A_clq(ii,clq_nbrs) = 1;
+    else
+        node(ii).clq_conn = node(ii).tree_conn;
     end
 end
-% remove problem connections
-for ii = 1:max([node.clq])
-
-end
+% problem is here
+% A_mst_org = A_mst;
+% idx = find([node.isclq]);
+% for ii = 1:numel(idx) 
+%     if isempty(setdiff(node(idx(ii)).clq_conn,node(idx(ii)).clq_nbrs))
+%         A_mst(idx(ii),:) = 0;
+%         A_mst(:,idx(ii)) = 0;
+%     end
+% end
 
 
 [u1,v1]=eig(A_mst);
