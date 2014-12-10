@@ -3,7 +3,7 @@ function [node,uo] = construct_tree_clq(node)
 %
 % The function generates a MST based on current node positions
 %
-% Syntax:  [node] = network_gen_tree(node)
+% Syntax:  [node] = construct_tree_clq(node)
 %
 % Inputs:
 %   node            -   contains node information in structure format
@@ -11,18 +11,17 @@ function [node,uo] = construct_tree_clq(node)
 % Outputs:
 %   node            -   contains node with updated tree connections 
 %                       in structure format
-%   A               -   adjacency matrix of tree
 %   uo              -   update order for TDANSE
 %                   
 % Example:
-%    [node,~,~] = construct_tree(node)
+%    [node,~] = construct_tree_clq(node)
 %
 % Other m-files required: path_find
 
 % Author: Joseph Szurley
 % Work address
 % email: joseph.szurley@esat.kuleuven.be
-% October 2014; Last revision: 04-Dec-2014
+% October 2014; Last revision: 10-Dec-2014
 
 nb_nodes = size(node,2);
 r = 0;                              % initial broadcast radius of each node
@@ -109,16 +108,6 @@ for ii = 1:nb_nodes
         node(ii).clq_conn = node(ii).tree_conn;
     end
 end
-% problem is here
-% A_mst_org = A_mst;
-% idx = find([node.isclq]);
-% for ii = 1:numel(idx) 
-%     if isempty(setdiff(node(idx(ii)).clq_conn,node(idx(ii)).clq_nbrs))
-%         A_mst(idx(ii),:) = 0;
-%         A_mst(:,idx(ii)) = 0;
-%     end
-% end
-
 
 [u1,v1]=eig(A_mst);
 [~,lambdaind]=sort(abs(diag(v1)));

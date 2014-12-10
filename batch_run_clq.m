@@ -151,9 +151,8 @@ while 1
     reverseStr = repmat(sprintf('\b'), 1, length(msg));
 end
 
-
+%% T-DANSE
 node = org_node;
-% T-DANSE
 fprintf('\n')
 reverseStr = '';
 disp('TDANSE')
@@ -177,19 +176,40 @@ while 1
     reverseStr = repmat(sprintf('\b'), 1, length(msg));
 end
 
+%% DANSE mixed topology - clique based updating order
 node = org_node;
 fprintf('\n')
 reverseStr = '';
 disp('Clique based')
+disp('TDANSE')
+node_update = updateorder(1);
+cost_sum_MTDANSE_MUO = [];
+ii = 1;
+while 1
+    [node] = MTDANSE(node,node_update);
+    cost_sum_MTDANSE_MUO = [cost_sum_MTDANSE_MUO sum(cat(1,node.cost))];
+    tot_diff = norm(cat(1,node.cost_cent) - ...
+        cellfun(@(x) x(end), {node.cost})');
+    
+    if or(lt(tot_diff,thresh),ge(ii,max_iter));
+        break
+    else
+        ii = ii + 1;
+    end
+    node_update=updateorder_clq(rem(ii,numel(updateorder_clq))+1);
+    msg = sprintf('Iteration : %d', ii);
+    fprintf([reverseStr, msg]);
+    reverseStr = repmat(sprintf('\b'), 1, length(msg));
+end
 
-
+%% plot
 if plot_on
     figure
     hold on
     loglog(cost_sum_DANSE)
     loglog(cost_sum_DANSE_tree_updating,'-xm')
     loglog(cost_sum_TDANSE,'-or')
-    %loglog(cost_sum_TIDANSE_tree,'--dk')
+    loglog(cost_sum_MTDANSE_MUO,'--dk')
     axis tight
 
 h =  refline(0,sum([node.cost_cent]));
@@ -197,7 +217,7 @@ set(h,'LineStyle','--');
 
 a = get(gca,'YLim');
 set(gca,'YLim',[sum([node.cost_cent]) - sum([node.cost_cent])*.1 a(2)])
-legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','TI-DANSE (T)', 'Optimal');
+legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','DANSE - MT-MUO', 'Optimal');
 set(gca, 'XScale', 'log', 'YScale', 'log')
 xlabel('Iteration')
 ylabel('Sum of LS cost for all nodes (dB)')
