@@ -21,7 +21,7 @@ function [total_conv] = batch_run_clq()
 DANSE_param.desired_sources = 2;  
 
 % number of nodes
-DANSE_param.nb_nodes = 13;       
+DANSE_param.nb_nodes = 8;       
 
 % number of sensors per node (assumed same across all nodes compression 
 %ratio of (DANSE_param.sensors+1)/DANSE_param.desired_sources)
@@ -31,8 +31,8 @@ DANSE_param.sensors = DANSE_param.desired_sources + 1;
 DANSE_param.noise_sources = 4;    
 
 % number and size of cliques 
-DANSE_param.nb_clq = 3;     % number of cliques
-DANSE_param.clq_size = 4;   % number of nodes in clique
+DANSE_param.nb_clq = 2;     % number of cliques
+DANSE_param.clq_size = 3;   % number of nodes in clique
 if lt(DANSE_param.nb_nodes,DANSE_param.nb_clq*DANSE_param.clq_size)
     disp(['Warning not enough nodes for clique generation']);
 end

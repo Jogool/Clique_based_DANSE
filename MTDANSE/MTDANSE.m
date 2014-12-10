@@ -34,8 +34,6 @@ node = MTDANSE_rooted_ff(node,node_update);
 node = MTDANSE_rooted_df(node,node_update);
 node = MTDANSE_filt_update(node,node_update);
 
-
-
 % intra-clqiue signals denoted as clq_zx, clq_zn
 % inter-clique and tree signals given as ff_zx, ff_zn, df_zx, df_zn
 
