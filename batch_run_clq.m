@@ -41,10 +41,10 @@ plot_on = 1;        % 1(0) - show (do not show) network
 
 % max iterations before stopping DANSE algorithms 
 %note algoritm may not have converged when max iter has been reached
-max_iter = 1000;  
+max_iter = 100;  
 
  % threshold for when to stop algorithms, i.e., when convergence is met
-thresh = 1e-5;     
+thresh = 1e-3;     
 
 % output 
 total_conv = zeros(5,max_iter); % see header for description
@@ -150,7 +150,6 @@ while 1
     fprintf([reverseStr, msg]);
     reverseStr = repmat(sprintf('\b'), 1, length(msg));
 end
-
 %% T-DANSE
 node = org_node;
 fprintf('\n')
@@ -180,8 +179,7 @@ end
 node = org_node;
 fprintf('\n')
 reverseStr = '';
-disp('Clique based')
-disp('TDANSE')
+disp('MTDANSE MUO')
 node_update = updateorder(1);
 cost_sum_MTDANSE_MUO = [];
 ii = 1;
