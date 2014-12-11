@@ -25,7 +25,7 @@ for ii = 1:size(node,2)
     for jj = nb_conn
         h = line([node(ii).pos(1) node(jj).pos(1)],[node(ii).pos(2) node(jj).pos(2)]);
         set(h,'Color','red')
-        set(h,'LineWidth',1)
+        set(h,'LineWidth',0.5)
         set(h,'LineStyle','--')
     end
 

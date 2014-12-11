@@ -21,7 +21,7 @@ function [total_conv] = batch_run_clq()
 DANSE_param.desired_sources = 2;  
 
 % number of nodes
-DANSE_param.nb_nodes = 8;       
+DANSE_param.nb_nodes = 9;       
 
 % number of sensors per node (assumed same across all nodes compression 
 %ratio of (DANSE_param.sensors+1)/DANSE_param.desired_sources)
@@ -41,7 +41,7 @@ plot_on = 1;        % 1(0) - show (do not show) network
 
 % max iterations before stopping DANSE algorithms 
 %note algoritm may not have converged when max iter has been reached
-max_iter = 100;  
+max_iter = 40;  
 
  % threshold for when to stop algorithms, i.e., when convergence is met
 thresh = 1e-3;     
@@ -88,13 +88,12 @@ for ii = 1:numel(idx)
     end
 end
 
-updateorder
-updateorder_clq
-
 % find centralized solution
 disp('Centralized')
 [node] = centralized(node);
-
+%load node
+save node node updateorder_clq updateorder
+savefig('node.fig')
 % store original coefficients, this is loaded before every instance of a
 % DANSE algorithm, so that the local filters all start at the same value
 org_node = node;
@@ -199,6 +198,31 @@ while 1
     fprintf([reverseStr, msg]);
     reverseStr = repmat(sprintf('\b'), 1, length(msg));
 end
+fprintf('\n')
+%% DANSE mixed topology - tree based updating order
+node = org_node;
+reverseStr = '';
+disp('MTDANSE TUO')
+node_update = updateorder(1);
+cost_sum_MTDANSE_TUO = [];
+ii = 1;
+while 1
+    [node] = MTDANSE(node,node_update);
+    cost_sum_MTDANSE_TUO = [cost_sum_MTDANSE_TUO sum(cat(1,node.cost))];
+    tot_diff = norm(cat(1,node.cost_cent) - ...
+        cellfun(@(x) x(end), {node.cost})');
+    
+    if or(lt(tot_diff,thresh),ge(ii,max_iter));
+        break
+    else
+        ii = ii + 1;
+    end
+    node_update=updateorder(rem(ii,numel(updateorder))+1);
+    msg = sprintf('Iteration : %d', ii);
+    fprintf([reverseStr, msg]);
+    reverseStr = repmat(sprintf('\b'), 1, length(msg));
+end
+fprintf('\n')
 
 %% plot
 if plot_on
@@ -208,6 +232,7 @@ if plot_on
     loglog(cost_sum_DANSE_tree_updating,'-xm')
     loglog(cost_sum_TDANSE,'-or')
     loglog(cost_sum_MTDANSE_MUO,'--dk')
+    loglog(cost_sum_MTDANSE_TUO,'-*g')
     axis tight
 
 h =  refline(0,sum([node.cost_cent]));
@@ -221,12 +246,11 @@ xlabel('Iteration')
 ylabel('Sum of LS cost for all nodes (dB)')
 end
 
-total_conv(1,1:length(cost_sum_DANSE)) = cost_sum_DANSE;
-total_conv(2,1:length(cost_sum_TDANSE)) = cost_sum_TDANSE;
-total_conv(3,1:length(cost_sum_TIDANSE_fc)) = cost_sum_TIDANSE_fc;
-total_conv(4,1:length(cost_sum_TIDANSE_tree)) = cost_sum_TIDANSE_tree;
-total_conv(5,1) = sum([node.cost_cent]);
-fprintf('\n')
+%total_conv(1,1:length(cost_sum_DANSE)) = cost_sum_DANSE;
+%total_conv(2,1:length(cost_sum_TDANSE)) = cost_sum_TDANSE;
+%total_conv(3,1:length(cost_sum_TIDANSE_fc)) = cost_sum_TIDANSE_fc;
+%total_conv(4,1:length(cost_sum_TIDANSE_tree)) = cost_sum_TIDANSE_tree;
+%total_conv(5,1) = sum([node.cost_cent]);
 
 
 

@@ -62,26 +62,26 @@ for ii = 1:nb_nodes
     node(ii).conn = find(A(ii,:));
 end
 
-% truncate connections such that non-clique nodes only communicate with the
-% nearest clique node neighbor
-A_clq = A;
-for ii = 1:max([node.clq])
-    idx = find([node.clq] == ii); % nodes in clique
-    idx1 = 1:nb_nodes;
-    idx1(idx) = [];                         % nodes not in clique
-    idx2 = find(sum(A_clq(idx,idx1)) > 1);
-    if ~isempty(idx2)
-        for jj = 1:numel(idx2)
-            [~,I] = min(D(idx,idx1(idx2(jj))));
-            A_clq(idx(idx~=idx(I)),idx1(idx2(jj))) = 0;
-            A_clq(idx1(idx2(jj)),idx(idx~=idx(I))) = 0;            
-        end
-    end
+% find which clique nodes are closest to non-clique nodes, use these as
+% neighbors
+non_clq_nodes_idx = find([node.clq] == 0);
+nb_clqs = max([node.clq]);
+AA = zeros(nb_nodes);
+AA(non_clq_nodes_idx,non_clq_nodes_idx) = A(non_clq_nodes_idx,non_clq_nodes_idx);
+
+for ii = 1:nb_clqs
+    clq_idx = find([node.clq] == ii);
+    AA(clq_idx,clq_idx) = A(clq_idx,clq_idx);
+    non_clq_idx = setdiff(1:nb_nodes,clq_idx);
+    [~,j] = find(A(clq_idx,non_clq_idx));
+    D_temp = D(clq_idx,non_clq_idx(unique(j)));
+    D_temp(find(D_temp == 0)) = inf;
+    [~,I] = min(D(clq_idx,non_clq_idx(unique(j))));
+    AA(clq_idx(I),non_clq_idx(unique(j))) = 1;
+    AA(non_clq_idx(unique(j)),clq_idx(I)) = 1;
 end
 
-% find miminum spanning tree based on current connected adjanceny matrix
-% Euclidean weights
-A_tril = tril(A_clq);
+A_tril = tril(AA);
 euc_weight = D(find(A_tril));
 [rows,cols] = find(A_tril);
 
@@ -90,7 +90,8 @@ UG = sparse(rows,cols,euc_weight,nb_nodes,nb_nodes);
 [ST,~] = graphminspantree(UG);
 
 A_mst = full(ST)+full(ST)';    % adjanceny matrix of tree topology
-A_mst(find(A_mst)) = 1;
+A_mst(find(A_mst)) = 1;   
+
 
 % find all connections for tree
 for ii = 1:nb_nodes
@@ -118,4 +119,4 @@ EigvCentrality=[[1:size(A_mst,1)]' abs(u1(:,lambdaind(end)))];
 % find updating order based on root node and 
 uo = root_node;
 uo = path_find(uo,A_mst,root_node);
-end
+

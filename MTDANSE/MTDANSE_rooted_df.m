@@ -10,16 +10,12 @@ for jj = node(ii).ff_rec
     % if receiving node is in the same clique as the broadcasting node
     if and(node(jj).isclq,eq(node(jj).clq,node(ii).clq))
         idx = setdiff(idx,node(ii).clq_nbrs);
-    elseif and(node(jj).isclq,~eq(node(jj).clq,node(ii).clq))
-        idx = [idx setdiff(node(ii).clq_nbrs,node(ii).ff_trans)];
-        disp('')
-    else
-        disp('')
-     %   if isempty(idx)
-     %   
-     %   else
-     %       
-     %   end
+    else %and(node(jj).isclq,~eq(node(jj).clq,node(ii).clq))
+        idx = unique([idx setdiff(node(ii).clq_nbrs,node(ii).ff_trans)]);
+    %else and(~node(jj).isclq,eq(node(jj).clq,node(ii).clq))
+    %    idx = sort([idx setdiff(node(ii).clq_nbrs,node(ii).ff_trans)])
+    %else
+    %    disp('')
     end
     
     % there are times when the root node does not have any other signals to
