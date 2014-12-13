@@ -3,7 +3,6 @@ function [node] = MTDANSE_rooted_ff(node,root)
 % sink (root) node
 nb_nodes = size(node,2);
 dim_DANSE = node(1).dimDANSE;
-dl_flag = 0;
 [node.ff_trans] = deal([]);   % node k transmits to this node during the ff (should always be a single node)
 [node.ff_rec] = deal([]);     % node k receives these signals during the ff
 [node.ff_update] = deal(0);   % flag if node has transmitted its ff-signal (0-no, 1-yes)
