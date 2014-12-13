@@ -69,7 +69,9 @@ nb_clqs = max([node.clq]);
 AA = zeros(nb_nodes);
 AA(non_clq_nodes_idx,non_clq_nodes_idx) = A(non_clq_nodes_idx,non_clq_nodes_idx);
 
-for ii = 1:nb_clqs    
+for ii = 1:nb_clqs
+    % this will connect to a whole clique still
+    
     clq_idx = find([node.clq] == ii);
     AA(clq_idx,clq_idx) = A(clq_idx,clq_idx);
     non_clq_idx = setdiff(1:nb_nodes,clq_idx);
@@ -87,10 +89,9 @@ for ii = 1:nb_clqs
             idx = non_clq_idx(find([node(non_clq_idx).clq] == clq_conn(jj)));
             D_temp = D(clq_idx,idx);
             D_temp(find(D_temp == 0)) = inf;
-            [~,I_clq] = min(min(D_temp,[],2));
-            [~,I_non_clq] = min(min(D_temp));
-            AA(clq_idx(I_clq),non_clq_idx(I_non_clq)) = 1;
-            AA(non_clq_idx(I_non_clq),clq_idx(I_clq)) = 1;
+            [~,I_clq] = min(D_temp);
+            AA(clq_idx(I_clq),non_clq_idx(jj)) = 1;
+            AA(non_clq_idx(jj),clq_idx(I_clq)) = 1;
         end
     end
     % for non-clique nodes    
@@ -98,8 +99,8 @@ for ii = 1:nb_clqs
         D_temp = D(clq_idx,non_clq_nodes(jj));
         D_temp(find(D_temp == 0)) = inf;
         [~,I] = min(D_temp);
-        AA(clq_idx(I),non_clq_nodes(jj)) = 1;
-        AA(non_clq_nodes(jj),clq_idx(I)) = 1;
+        AA(clq_idx(I),non_clq_idx(jj)) = 1;
+        AA(non_clq_idx(jj),clq_idx(I)) = 1;
     end
 end
 
