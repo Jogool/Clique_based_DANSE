@@ -21,7 +21,7 @@ function [node] = MTDANSE(node,node_update)
 
 % Author: Joseph Szurley
 % email: joseph.szurley@esat.kuleuven.be
-% Dec. 2014; Last revision: 10-Dec-2014
+% Dec. 2014; Last revision: 12-Dec-2014
 [node.cost] = deal(0);
 nb_nodes = size(node,2);
 dim_DANSE = node(1).dimDANSE;
@@ -52,5 +52,4 @@ for ii=1:nb_nodes
     node(ii).cost(1) = norm(node(ii).ss_clean(:,1:dim_DANSE)' - ...
         [node(ii).loc_filt_coeff' gkq_coeff']*...
         ([node(ii).ss_clean z_x_seq]+[node(ii).ss_noise z_n_seq])')^2;
-    disp('')
 end

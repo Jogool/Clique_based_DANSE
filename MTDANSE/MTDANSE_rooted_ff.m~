@@ -64,7 +64,7 @@ while lt(node_ff_update,nb_nodes-1) % can skip the root node, hence - 1
         if node(ii).isclq
             % find neighbors who have not performed a fusion flow update who
             % are also in the clique (this is used for a deadlock situation
-            nb_clq_non_update_neighbors = ...
+            clq_non_update_neighbors = ...
                 numel(find([node(non_update_neighbors).clq] == node(ii).clq));
             % if all of the neighbors have fired, can use normal firing
             % rules
@@ -77,6 +77,7 @@ while lt(node_ff_update,nb_nodes-1) % can skip the root node, hence - 1
                     idx =  unique([node(non_update_neighbors).ff_rec ...
                         node(non_update_neighbors).clq_nbrs]);
                     node(non_update_neighbors).ff_rec = idx;
+                    %node(ii).ff_trans = non_update_neighbors;
                     for jj = node(non_update_neighbors).clq_nbrs
                        node(jj).ff_trans = non_update_neighbors;
                     end
@@ -98,7 +99,7 @@ while lt(node_ff_update,nb_nodes-1) % can skip the root node, hence - 1
                     % if node is a clique node broadcasting to non-clique
                     % node gather all signals from the clique, i.e., the
                     % clique  broadcast a ff-signal to this clique neighbor
-                    node(ii).ff_rec = unique([node(ii).clq_nbrs node(ii).ff_rec]);
+                    node(ii).ff_rec = node(ii).clq_nbrs;
                     for jj = node(ii).clq_nbrs
                         node(jj).ff_trans = ii;
                     end
@@ -120,9 +121,9 @@ while lt(node_ff_update,nb_nodes-1) % can skip the root node, hence - 1
                 end
                 node(ii).ff_update = 1;
             % this convers the deadlock condition when nodes in a clique 
-            % will not fire as more than one neighbor has not fired,
-            % therefore if the only non-upda
-            elseif eq(nb_clq_non_update_neighbors,numel(non_update_neighbors))
+            % will not fire as more than
+            elseif eq(clq_non_update_neighbors,numel(non_update_neighbors))
+                disp('')
                 
                 idx = setdiff(nbrs_updated,node(ii).clq_nbrs);
                 

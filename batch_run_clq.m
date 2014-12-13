@@ -41,10 +41,10 @@ plot_on = 1;        % 1(0) - show (do not show) network
 
 % max iterations before stopping DANSE algorithms 
 %note algoritm may not have converged when max iter has been reached
-max_iter = 40;  
+max_iter = 500;  
 
  % threshold for when to stop algorithms, i.e., when convergence is met
-thresh = 1e-3;     
+thresh = 1e-4;     
 
 % output 
 total_conv = zeros(5,max_iter); % see header for description
@@ -92,14 +92,13 @@ end
 disp('Centralized')
 [node] = centralized(node);
 %load node
-save node node updateorder_clq updateorder
-savefig('node.fig')
+%save node node updateorder_clq updateorder
+%savefig('node.fig')
 % store original coefficients, this is loaded before every instance of a
 % DANSE algorithm, so that the local filters all start at the same value
 org_node = node;
 
 %% DANSE - round robin updating
-fprintf('\n')
 disp('DANSE round robin updating')
 reverseStr = '';
 
@@ -183,6 +182,9 @@ node_update = updateorder(1);
 cost_sum_MTDANSE_MUO = [];
 ii = 1;
 while 1
+    if or(eq(ii,32),or(eq(ii,46),eq(ii,60)))
+        disp('')
+    end
     [node] = MTDANSE(node,node_update);
     cost_sum_MTDANSE_MUO = [cost_sum_MTDANSE_MUO sum(cat(1,node.cost))];
     tot_diff = norm(cat(1,node.cost_cent) - ...
@@ -240,7 +242,7 @@ set(h,'LineStyle','--');
 
 a = get(gca,'YLim');
 set(gca,'YLim',[sum([node.cost_cent]) - sum([node.cost_cent])*.1 a(2)])
-legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','DANSE - MT-MUO', 'Optimal');
+legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','DANSE - MT-MUO','DANSE - MT-TUO', 'Optimal');
 set(gca, 'XScale', 'log', 'YScale', 'log')
 xlabel('Iteration')
 ylabel('Sum of LS cost for all nodes (dB)')

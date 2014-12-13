@@ -70,15 +70,20 @@ AA = zeros(nb_nodes);
 AA(non_clq_nodes_idx,non_clq_nodes_idx) = A(non_clq_nodes_idx,non_clq_nodes_idx);
 
 for ii = 1:nb_clqs
+    % this will connect to a whole clique still, perhaps this is the
+    % problem?
     clq_idx = find([node.clq] == ii);
     AA(clq_idx,clq_idx) = A(clq_idx,clq_idx);
     non_clq_idx = setdiff(1:nb_nodes,clq_idx);
-    [~,j] = find(A(clq_idx,non_clq_idx));
-    D_temp = D(clq_idx,non_clq_idx(unique(j)));
-    D_temp(find(D_temp == 0)) = inf;
-    [~,I] = min(D(clq_idx,non_clq_idx(unique(j))));
-    AA(clq_idx(I),non_clq_idx(unique(j))) = 1;
-    AA(non_clq_idx(unique(j)),clq_idx(I)) = 1;
+    [~,non_clq_conn] = find(A(clq_idx,non_clq_idx));
+    non_clq_idx = non_clq_idx(unique(non_clq_conn));
+    for jj = 1:numel(non_clq_idx)
+        D_temp = D(clq_idx,non_clq_idx(jj));
+        D_temp(find(D_temp == 0)) = inf;
+        [~,I] = min(D_temp);
+        AA(clq_idx(I),non_clq_idx(jj)) = 1;
+        AA(non_clq_idx(jj),clq_idx(I)) = 1;
+    end
 end
 
 A_tril = tril(AA);
