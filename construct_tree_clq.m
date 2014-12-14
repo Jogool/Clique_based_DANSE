@@ -1,4 +1,4 @@
-function [node,uo] = construct_tree_clq(node)
+function [node,uo,uo_clq] = construct_tree_clq(node)
 % constrcut a MST based on current node positions
 %
 % The function generates a MST based on current node positions
@@ -12,6 +12,7 @@ function [node,uo] = construct_tree_clq(node)
 %   node            -   contains node with updated tree connections 
 %                       in structure format
 %   uo              -   update order for TDANSE
+%   uo_clq          -   update order for MTDANSE
 %                   
 % Example:
 %    [node,~] = construct_tree_clq(node)
@@ -62,58 +63,91 @@ for ii = 1:nb_nodes
     node(ii).conn = find(A(ii,:));
 end
 
-% find which clique nodes are closest to non-clique nodes, use these as
-% neighbors
-non_clq_nodes_idx = find([node.clq] == 0);
 nb_clqs = max([node.clq]);
-AA = zeros(nb_nodes);
-AA(non_clq_nodes_idx,non_clq_nodes_idx) = A(non_clq_nodes_idx,non_clq_nodes_idx);
+non_clq_node_idx = find([node.clq] == 0);
+nb_non_clq_nodes = numel(non_clq_node_idx);
 
+A_clq = zeros(nb_clqs+nb_non_clq_nodes,nb_clqs+nb_non_clq_nodes);
+D_clq = A_clq;
+A_clq(end - nb_non_clq_nodes + 1:end,end - nb_non_clq_nodes + 1:end) = ...
+    A(non_clq_node_idx,non_clq_node_idx);
+D_clq(end - nb_non_clq_nodes + 1:end,end - nb_non_clq_nodes + 1:end) = ...
+    D(non_clq_node_idx,non_clq_node_idx);
+% construct small adjacency matrix that represents all nodes in a clique as
+% one index in the adjacency matrix
 for ii = 1:nb_clqs    
     clq_idx = find([node.clq] == ii);
-    AA(clq_idx,clq_idx) = A(clq_idx,clq_idx);
-    non_clq_idx = setdiff(1:nb_nodes,clq_idx);
-    [~,non_clq_conn] = find(A(clq_idx,non_clq_idx));
-    non_clq_idx = non_clq_idx(unique(non_clq_conn));
-    % find other cliques this clique is connected to
-    clq_clq_idx = [node(non_clq_idx).clq];
-    % non clique nodes
-    non_clq_nodes =  non_clq_idx(find(~[node(non_clq_idx).clq]));
-    % for nodes in other cliques
-    if ~isempty(find(clq_clq_idx))
-        % find which cliques current clique is connected to
-        clq_conn = unique(clq_clq_idx(clq_clq_idx ~= 0));
-        for jj = 1:numel(clq_conn)
-            idx = non_clq_idx(find([node(non_clq_idx).clq] == clq_conn(jj)));
-            D_temp = D(clq_idx,idx);
-            D_temp(find(D_temp == 0)) = inf;
-            [~,I_clq] = min(min(D_temp,[],2));
-            [~,I_non_clq] = min(min(D_temp));
-            AA(clq_idx(I_clq),non_clq_idx(I_non_clq)) = 1;
-            AA(non_clq_idx(I_non_clq),clq_idx(I_clq)) = 1;
+    idx = setdiff(1:nb_clqs,ii);
+    for jj = idx
+        non_clq_idx = find([node.clq] == jj);
+        if ~isempty(find(A(clq_idx,non_clq_idx)))
+            A_clq(ii,jj) = 1;
+            A_clq(jj,ii) = 1;
+            [C_clq,~] = min(min(D(clq_idx,non_clq_idx)));
+            %[C_non_clq,I_non_clq] = min(min(D(clq_idx,non_clq_idx)));
+            D_clq(ii,jj) = C_clq;
+            D_clq(jj,ii) = C_clq;
         end
     end
-    % for non-clique nodes    
-    for jj = 1:numel(non_clq_nodes)
-        D_temp = D(clq_idx,non_clq_nodes(jj));
-        D_temp(find(D_temp == 0)) = inf;
-        [~,I] = min(D_temp);
-        AA(clq_idx(I),non_clq_nodes(jj)) = 1;
-        AA(non_clq_nodes(jj),clq_idx(I)) = 1;
+    for jj = 1:nb_non_clq_nodes
+        if ~isempty(find(A(clq_idx,non_clq_node_idx(jj))))
+            A_clq(ii,nb_clqs+jj) = 1;
+            A_clq(nb_clqs+jj,ii) = 1;
+            [C_clq,~] = min(min(D(clq_idx,non_clq_node_idx(jj))));
+            D_clq(ii,nb_clqs+jj) = C_clq;
+            D_clq(nb_clqs+jj,ii) = C_clq;
+        end
     end
 end
 
-A_tril = tril(AA);
-euc_weight = D(find(A_tril));
+A_tril = tril(A_clq);
+euc_weight = D_clq(find(A_tril));
 [rows,cols] = find(A_tril);
 
-UG = sparse(rows,cols,euc_weight,nb_nodes,nb_nodes);
+UG = sparse(rows,cols,euc_weight,nb_clqs+nb_non_clq_nodes,nb_clqs+nb_non_clq_nodes);
 
 [ST,~] = graphminspantree(UG);
 
-A_mst = full(ST)+full(ST)';    % adjanceny matrix of tree topology
-A_mst(find(A_mst)) = 1;   
+A_mst_clq = full(ST)+full(ST)';    % adjanceny matrix of tree topology
+A_mst_clq(find(A_mst_clq)) = 1;  
 
+A_mst = zeros(nb_nodes);
+A_mst(non_clq_node_idx,non_clq_node_idx) = ...
+    A_mst_clq(end - nb_non_clq_nodes + 1:end,end - nb_non_clq_nodes + 1:end);
+for ii = 1:nb_clqs
+    clq_idx = find([node.clq] == ii);
+    idx = setdiff(1:nb_clqs,ii);
+    % find minimum distance between connected cliques
+    for jj = idx
+        if A_mst_clq(ii,jj)
+            non_clq_idx = find([node.clq] == jj);
+            D_temp = D(clq_idx,non_clq_idx);
+            [~,I_clq] = min(min(D_temp,[],2));
+            [~,I_non_clq] = min(min(D_temp));
+            A_mst(clq_idx(I_clq),non_clq_idx(I_non_clq)) = 1;
+            A_mst(non_clq_idx(I_non_clq),clq_idx(I_clq)) = 1;
+        end
+    end
+    % find mimumn distance between clique and non-clique node
+    for jj = 1:nb_non_clq_nodes
+        if A_mst_clq(ii,nb_clqs+jj)
+            D_temp = D(clq_idx,non_clq_node_idx(jj));
+            [~,I_clq] = min(D_temp);
+            A_mst(clq_idx(I_clq),non_clq_node_idx(jj)) = 1;
+            A_mst(non_clq_node_idx(jj),clq_idx(I_clq)) = 1;
+        end
+    end
+end
+% connect cliques into a tree
+for ii = 1:nb_clqs
+    clq_idx = find([node.clq] == ii);
+    for jj = 1:numel(clq_idx)
+        kk = setdiff(clq_idx,clq_idx(jj));
+        [~,I_clq] = min(D(clq_idx(jj),kk));
+        A_mst(clq_idx(jj),kk(I_clq)) = 1;
+        A_mst(kk(I_clq),clq_idx(jj)) = 1;
+    end
+end
 
 % find all connections for tree
 for ii = 1:nb_nodes
@@ -141,4 +175,32 @@ EigvCentrality=[[1:size(A_mst,1)]' abs(u1(:,lambdaind(end)))];
 % find updating order based on root node and 
 uo = root_node;
 uo = path_find(uo,A_mst,root_node);
+
+% remove redudant updating from clique path : removes all clique only 
+% nodes (only let them update once)
+
+uo_clq = uo;
+idx = find([node.isclq]);
+for ii = 1:numel(idx) 
+    if isempty(setdiff(node(idx(ii)).clq_conn,node(idx(ii)).clq_nbrs))
+        [~,I] = find(uo_clq == idx(ii));
+        uo_clq(I(2:end)) = [];
+    else
+        [~,I] = find(uo_clq == idx(ii));
+        idx_rem = [];
+        for jj = 1:numel(I)
+            % checK to make sure that node is not at the end or the
+            % beginning of the update path
+            if and(~eq(I(jj),1),lt(I,numel(uo_clq)))
+                start_node = uo_clq(I(jj)-1);
+                end_node = uo_clq(I(jj)+1);
+                [~,~,ib] = intersect(node(idx(ii)).clq_nbrs,[start_node end_node]);
+                if eq(numel(ib),2)
+                    idx_rem = [idx_rem I(jj)];
+                end
+            end
+        end
+        uo_clq(idx_rem) = [];
+    end
+end
 
