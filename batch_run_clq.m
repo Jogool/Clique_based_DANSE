@@ -21,7 +21,7 @@ function [total_conv] = batch_run_clq()
 DANSE_param.desired_sources = 2;  
 
 % number of nodes
-DANSE_param.nb_nodes = 9;       
+DANSE_param.nb_nodes = 17;       
 
 % number of sensors per node (assumed same across all nodes compression 
 %ratio of (DANSE_param.sensors+1)/DANSE_param.desired_sources)
@@ -31,7 +31,7 @@ DANSE_param.sensors = DANSE_param.desired_sources + 1;
 DANSE_param.noise_sources = 4;    
 
 % number and size of cliques 
-DANSE_param.nb_clq = 2;     % number of cliques
+DANSE_param.nb_clq = 5;     % number of cliques
 DANSE_param.clq_size = 3;   % number of nodes in clique
 if lt(DANSE_param.nb_nodes,DANSE_param.nb_clq*DANSE_param.clq_size)
     disp(['Warning not enough nodes for clique generation']);
@@ -41,52 +41,25 @@ plot_on = 1;        % 1(0) - show (do not show) network
 
 % max iterations before stopping DANSE algorithms 
 %note algoritm may not have converged when max iter has been reached
-max_iter = 500;  
+max_iter = 1000;  
 
  % threshold for when to stop algorithms, i.e., when convergence is met
 thresh = 1e-4;     
 
 % output 
-total_conv = zeros(5,max_iter); % see header for description
+total_conv = zeros(6,max_iter); % see header for description
 
 % generate random network and TDANSE updating order 
 if plot_on
     close all
     [node,source,noise,wnv] = network_gen_clq(DANSE_param);
-    [node,updateorder] = construct_tree_clq(node);
+    [node,updateorder,updateorder_clq] = construct_tree_clq(node);
     plot_WSN_clq(node,source,noise)
 else
     [node,~,~,~] = network_gen_clq(DANSE_param);
-    [node,~,updateorder] = construct_tree_clq(node);
+    [node,updateorder,updateorder_clq] = construct_tree_clq(node);
 end
 
-% remove redudant updating from clique path : removes all clique only 
-% nodes (only let them update once)
-
-updateorder_clq = updateorder;
-idx = find([node.isclq]);
-for ii = 1:numel(idx) 
-    if isempty(setdiff(node(idx(ii)).clq_conn,node(idx(ii)).clq_nbrs))
-        [~,I] = find(updateorder_clq == idx(ii));
-        updateorder_clq(I(2:end)) = [];
-    else
-        [~,I] = find(updateorder_clq == idx(ii));
-        idx_rem = [];
-        for jj = 1:numel(I)
-            % chech to make sure that node is not at the end or the
-            % beginning of the update path
-            if and(~eq(I(jj),1),lt(I,numel(updateorder_clq)))
-                start_node = updateorder_clq(I(jj)-1);
-                end_node = updateorder_clq(I(jj)+1);
-                [~,~,ib] = intersect(node(idx(ii)).clq_nbrs,[start_node end_node]);
-                if eq(numel(ib),2)
-                    idx_rem = [idx_rem I(jj)];
-                end
-            end
-        end
-        updateorder_clq(idx_rem) = [];
-    end
-end
 
 % find centralized solution
 disp('Centralized')
@@ -248,11 +221,12 @@ xlabel('Iteration')
 ylabel('Sum of LS cost for all nodes (dB)')
 end
 
-%total_conv(1,1:length(cost_sum_DANSE)) = cost_sum_DANSE;
-%total_conv(2,1:length(cost_sum_TDANSE)) = cost_sum_TDANSE;
-%total_conv(3,1:length(cost_sum_TIDANSE_fc)) = cost_sum_TIDANSE_fc;
-%total_conv(4,1:length(cost_sum_TIDANSE_tree)) = cost_sum_TIDANSE_tree;
-%total_conv(5,1) = sum([node.cost_cent]);
+total_conv(1,1:length(cost_sum_DANSE)) = cost_sum_DANSE;
+total_conv(2,1:length(cost_sum_DANSE_tree_updating)) = cost_sum_DANSE_tree_updating;
+total_conv(3,1:length(cost_sum_TDANSE)) = cost_sum_TDANSE;
+total_conv(4,1:length(cost_sum_MTDANSE_MUO)) = cost_sum_MTDANSE_MUO;
+total_conv(5,1:length(cost_sum_MTDANSE_TUO)) = cost_sum_MTDANSE_TUO;
+total_conv(6,1) = sum([node.cost_cent]);
 
 
 
