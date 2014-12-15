@@ -64,9 +64,6 @@ end
 % find centralized solution
 disp('Centralized')
 [node] = centralized(node);
-%load node
-save node node updateorder_clq updateorder
-savefig('node.fig')
 % store original coefficients, this is loaded before every instance of a
 % DANSE algorithm, so that the local filters all start at the same value
 org_node = node;

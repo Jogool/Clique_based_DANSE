@@ -43,7 +43,7 @@ end
 
 % number of nodes who have performed ff update
 node_ff_update = numel(find(cat(1,node.ff_update)));
-counter = 1;
+
 while lt(node_ff_update,nb_nodes-1) % can skip the root node, hence - 1
     % find all nodes who have not performed a fusion flow update
     ff_idx = find(~cat(1,node.ff_update));
@@ -167,10 +167,6 @@ while lt(node_ff_update,nb_nodes-1) % can skip the root node, hence - 1
                 node(ii).ff_update = 1;
             end
         end
-    end
-    counter = counter + 1;
-    if gt(counter,100)
-        disp('')
     end
     node_ff_update = numel(find(cat(1,node.ff_update)));
 end
