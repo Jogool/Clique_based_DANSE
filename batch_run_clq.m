@@ -1,4 +1,4 @@
-function [total_conv] = batch_run_clq()
+function [total_conv,root_node_cost] = batch_run_clq()
 % Syntax:  [cout] = batch_run()
 %
 % Inputs:   none - for options change hardcoded parameters
@@ -6,6 +6,7 @@ function [total_conv] = batch_run_clq()
 %
 % Outputs: total_conv       - store the summed LS cost of all nodes
 %                             for all algorithms
+%          root_node_cost   - store LS cost for the root node only
 
 % Other m-files required: network_gen_tree_clq, centralized, folders
 % (DANSE,TDANSE,DANSE_clq)
@@ -14,7 +15,7 @@ function [total_conv] = batch_run_clq()
 % Author: Joseph Szurley
 % Work address
 % email: joseph.szurley@esat.kuleuven.be
-% Dec. 2014; Last revision: 09-Dec-2014
+% Dec. 2014; Last revision: 28-Apr-2015
 
 %% hardcoded parameters
 % number of desired sources (also dimension of DANSE)
@@ -48,7 +49,7 @@ thresh = 1e-4;
 
 % output 
 total_conv = zeros(6,max_iter); % see header for description
-
+root_node_cost = total_conv;
 % generate random network and TDANSE updating order 
 if plot_on
     close all
@@ -59,8 +60,9 @@ else
     [node,~,~,~] = network_gen_clq(DANSE_param);
     [node,updateorder,updateorder_clq] = construct_tree_clq(node);
 end
-
-
+rn = updateorder(1);        % rn - root node is always the first node to update 
+                            % in the tree
+                            
 % find centralized solution
 disp('Centralized')
 [node] = centralized(node);
@@ -72,20 +74,18 @@ org_node = node;
 disp('DANSE round robin updating')
 reverseStr = '';
 
-node_update = 1;
+node_update = updateorder(1);
 cost_sum_DANSE = [];
 ii = 1;
-while 1
+tot_diff = inf;
+while ~or(lt(tot_diff,thresh),ge(ii,max_iter));
     [node] = DANSE(node,node_update);
     cost_sum_DANSE = [cost_sum_DANSE sum(cat(1,node.cost))];
     tot_diff = norm(cat(1,node.cost_cent) - ...
         cellfun(@(x) x(end), {node.cost})');
-    
-    if or(lt(tot_diff,thresh),ge(ii,max_iter));
-        break
-    else
-        ii = ii + 1;  
-    end
+    root_node_cost(1,ii) = node(rn).cost;
+
+    ii = ii + 1;  
     node_update=rem(node_update,DANSE_param.nb_nodes)+1;    
     msg = sprintf('Iteration : %d', ii);
     fprintf([reverseStr, msg]);
@@ -98,21 +98,19 @@ fprintf('\n')
 disp('DANSE tree updating')
 reverseStr = '';
 
-node_update = 1;
+node_update = updateorder(1);
 cost_sum_DANSE_tree_updating = [];
 ii = 1;
-while 1
+tot_diff = inf;
+while ~or(lt(tot_diff,thresh),ge(ii,max_iter));
     [node] = DANSE(node,node_update);
     cost_sum_DANSE_tree_updating = [cost_sum_DANSE_tree_updating ...
         sum(cat(1,node.cost))];
     tot_diff = norm(cat(1,node.cost_cent) - ...
         cellfun(@(x) x(end), {node.cost})');
+    root_node_cost(2,ii) = node(rn).cost;
     
-    if or(lt(tot_diff,thresh),ge(ii,max_iter));
-        break
-    else
-        ii = ii + 1;  
-    end
+    ii = ii + 1;  
     node_update=updateorder(rem(ii,numel(updateorder))+1);
     msg = sprintf('Iteration : %d', ii);
     fprintf([reverseStr, msg]);
@@ -126,17 +124,14 @@ disp('TDANSE')
 node_update = updateorder(1);
 cost_sum_TDANSE = [];
 ii = 1;
-while 1
+tot_diff = inf;
+while ~or(lt(tot_diff,thresh),ge(ii,max_iter));
     [node] = TDANSE(node,node_update);
     cost_sum_TDANSE = [cost_sum_TDANSE sum(cat(1,node.cost))];
     tot_diff = norm(cat(1,node.cost_cent) - ...
         cellfun(@(x) x(end), {node.cost})');
-    
-    if or(lt(tot_diff,thresh),ge(ii,max_iter));
-        break
-    else
-        ii = ii + 1;
-    end
+    root_node_cost(3,ii) = node(rn).cost;
+    ii = ii + 1;
     node_update=updateorder(rem(ii,numel(updateorder))+1);
     msg = sprintf('Iteration : %d', ii);
     fprintf([reverseStr, msg]);
@@ -151,20 +146,15 @@ disp('MTDANSE MUO')
 node_update = updateorder(1);
 cost_sum_MTDANSE_MUO = [];
 ii = 1;
-while 1
-    if or(eq(ii,32),or(eq(ii,46),eq(ii,60)))
-        disp('')
-    end
+tot_diff = inf;
+while  ~or(lt(tot_diff,thresh),ge(ii,max_iter));     
     [node] = MTDANSE(node,node_update);
     cost_sum_MTDANSE_MUO = [cost_sum_MTDANSE_MUO sum(cat(1,node.cost))];
     tot_diff = norm(cat(1,node.cost_cent) - ...
         cellfun(@(x) x(end), {node.cost})');
+    root_node_cost(4,ii) = node(rn).cost;
     
-    if or(lt(tot_diff,thresh),ge(ii,max_iter));
-        break
-    else
-        ii = ii + 1;
-    end
+    ii = ii + 1;
     node_update=updateorder_clq(rem(ii,numel(updateorder_clq))+1);
     msg = sprintf('Iteration : %d', ii);
     fprintf([reverseStr, msg]);
@@ -178,17 +168,15 @@ disp('MTDANSE TUO')
 node_update = updateorder(1);
 cost_sum_MTDANSE_TUO = [];
 ii = 1;
-while 1
+tot_diff = inf;
+while ~or(lt(tot_diff,thresh),ge(ii,max_iter));
     [node] = MTDANSE(node,node_update);
     cost_sum_MTDANSE_TUO = [cost_sum_MTDANSE_TUO sum(cat(1,node.cost))];
     tot_diff = norm(cat(1,node.cost_cent) - ...
         cellfun(@(x) x(end), {node.cost})');
-    
-    if or(lt(tot_diff,thresh),ge(ii,max_iter));
-        break
-    else
-        ii = ii + 1;
-    end
+    root_node_cost(5,ii) = node(rn).cost;
+
+    ii = ii + 1;
     node_update=updateorder(rem(ii,numel(updateorder))+1);
     msg = sprintf('Iteration : %d', ii);
     fprintf([reverseStr, msg]);
@@ -216,7 +204,28 @@ legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','DANSE - MT-MUO','DANSE - MT
 set(gca, 'XScale', 'log', 'YScale', 'log')
 xlabel('Iteration')
 ylabel('Sum of LS cost for all nodes (dB)')
+
+% plot root node
+ figure
+    hold on
+    loglog(root_node_cost(1,:))
+    loglog(root_node_cost(2,:),'-xm')
+    loglog(root_node_cost(3,:),'-or')
+    loglog(root_node_cost(4,:),'--dk')
+    loglog(root_node_cost(5,:),'-*g')
+    axis tight
+
+h =  refline(0,node(rn).cost_cent);
+set(h,'LineStyle','--');
+
+a = get(gca,'YLim');
+legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','DANSE - MT-MUO','DANSE - MT-TUO', 'Optimal');
+set(gca, 'XScale', 'log', 'YScale', 'log')
+xlabel('Iteration')
+ylabel('LS cost of root node (dB)')
 end
+
+
 
 total_conv(1,1:length(cost_sum_DANSE)) = cost_sum_DANSE;
 total_conv(2,1:length(cost_sum_DANSE_tree_updating)) = cost_sum_DANSE_tree_updating;
