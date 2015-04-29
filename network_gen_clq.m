@@ -39,7 +39,6 @@ node(DANSE_param.nb_nodes) = struct;
 
 % clique hardcoded parameters
 clq_dis = .5;   % distance clique nodes are spaced around the center
-
 % generate sources at random locations 
 for ii = 1:DANSE_param.desired_sources
     source(ii).nb = ii;                     % source number
@@ -99,7 +98,7 @@ for ii = 1:DANSE_param.nb_nodes
     node(ii).loc_filt_coeff = -1+2*rand(node(ii).sensors,DANSE_param.desired_sources);
     idx = find(ii ~= 1:DANSE_param.nb_nodes);
     for jj = idx
-        node(ii).gkq(jj).coeff = -1+2*rand(DANSE_param.desired_sources,DANSE_param.desired_sources);
+        node(ii).gkq(jj).coeff = zeros(DANSE_param.desired_sources,DANSE_param.desired_sources);
     end
 end
 

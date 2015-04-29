@@ -55,6 +55,7 @@ if plot_on
     close all
     [node,source,noise,wnv] = network_gen_clq(DANSE_param);
     [node,updateorder,updateorder_clq] = construct_tree_clq(node);
+    %load node
     plot_WSN_clq(node,source,noise)
 else
     [node,~,~,~] = network_gen_clq(DANSE_param);
@@ -219,6 +220,7 @@ h =  refline(0,node(rn).cost_cent);
 set(h,'LineStyle','--');
 
 a = get(gca,'YLim');
+set(gca,'YLim',[node(rn).cost_cent - node(rn).cost_cent*.1 a(2)])
 legend('DANSE - FC-RR', 'DANSE - FC-TUO', 'T-DANSE','DANSE - MT-MUO','DANSE - MT-TUO', 'Optimal');
 set(gca, 'XScale', 'log', 'YScale', 'log')
 xlabel('Iteration')
